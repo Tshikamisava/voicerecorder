@@ -8,20 +8,30 @@ export default function RecordingsScreen({ route }) {
 
   const navigation = useNavigation();
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [sound, setSound] = useState(null);
 
   async function playRecording(recording) {
-    const { sound } = await Audio.Sound.createAsync({
-      uri: recording.file,
-    });
+    if (sound && isPlaying) {
+      await sound.pauseAsync();
+      setIsPlaying(false);
+    } else {
+      const { sound: newSound } = await Audio.Sound.createAsync({
+        uri: recording.file,
+      });
 
-    const playBackStatus = await sound.playAsync();
-    sound.setOnPlaybackStatusUpdate((status) => {
-      if (status.isPlaying) {
-        setElapsedTime(status.positionMillis);
-      } else {
-        setElapsedTime(0);
-      }
-    });
+      newSound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isPlaying) {
+          setElapsedTime(status.positionMillis);
+        } else {
+          setElapsedTime(0);
+        }
+      });
+
+      await newSound.playAsync();
+      setIsPlaying(true);
+      setSound(newSound);
+    }
   }
 
   function formatTime(milliseconds) {
@@ -37,8 +47,11 @@ export default function RecordingsScreen({ route }) {
         <Text>Recordings:</Text>
         {recordings.map((recording, index) => (
           <View key={index} style={styles.row}>
-            <Text style={styles.text}>Duration:{formatTime(elapsedTime)} </Text>
-            <Button title="Play" onPress={() => playRecording(recording)} />
+            <Text style={styles.text}>Duration: {formatTime(elapsedTime)} </Text>
+            <Button
+              title={isPlaying ? "Pause" : "Play"}
+              onPress={() => playRecording(recording)}
+            />
           </View>
         ))}
       </View>
@@ -83,10 +96,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 5,
     backgroundColor: "#f5f5f5",
-    
   },
-  text:{
-    color: 'blue',
+  text: {
+    color: "blue",
   },
   goBackButton: {
     marginTop: 20,
