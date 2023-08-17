@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { StyleSheet, View, TouchableOpacity } from "react-native";
+import React, { useState, useEffect } from "react";
+import { StyleSheet, View, TouchableOpacity, Text } from "react-native";
 import { Audio } from "expo-av";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
@@ -13,6 +13,7 @@ const Stack = createStackNavigator();
 export default function App() {
   const [recording, setRecording] = useState();
   const [recordings, setRecordings] = useState([]);
+  const [timer, setTimer] = useState(0); // New state to hold timer value
 
   function getDurationFormatted(milliseconds) {
     const minutes = milliseconds / 1000 / 60;
@@ -62,6 +63,22 @@ export default function App() {
     setRecordings([]);
   }
 
+  useEffect(() => {
+    let interval;
+    if (recording) {
+      interval = setInterval(() => {
+        setTimer((prevTimer) => prevTimer + 1000); // Update timer every second
+      }, 1000);
+    } else {
+      clearInterval(interval); // Clear the interval when not recording
+      setTimer(0); // Reset the timer when recording stops
+    }
+
+    return () => {
+      clearInterval(interval); // Clean up the interval on unmount
+    };
+  }, [recording]);
+
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Home">
@@ -80,8 +97,8 @@ export default function App() {
         >
           {() => (
             <ImageBackground
-            source={{ uri: 'https://cdn.pixabay.com/photo/2017/10/28/15/44/guitar-2897355_640.jpg' }}
-             style={styles.container}>
+              source={{ uri: 'https://cdn.pixabay.com/photo/2017/10/28/15/44/guitar-2897355_640.jpg' }}
+              style={styles.container}>
               <TouchableOpacity
                 onPress={recording ? stopRecording : startRecording}
                 style={styles.recordButton}
@@ -92,6 +109,9 @@ export default function App() {
                   color="white"
                 />
               </TouchableOpacity>
+              <Text style={styles.timerText}>
+                {recording ? new Date(timer).toISOString().substr(14, 5) : "00:00"}
+              </Text>
             </ImageBackground>
           )}
         </Stack.Screen>
@@ -120,5 +140,10 @@ const styles = StyleSheet.create({
   },
   icon: {
     marginRight: 16,
+  },
+  timerText: {
+    color: "blue",
+    fontSize: 24,
+    marginTop: 10,
   },
 });
